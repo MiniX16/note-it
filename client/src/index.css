@@ -1,0 +1,50 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&family=Handlee&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "Manrope", "Segoe UI", sans-serif;
+  color: #1f2933;
+  background-color: #f7f1e6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8f4ec 0%, #f1e6d6 50%, #e6d7c5 100%);
+}
+
+body.dark {
+  background: radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.06), transparent 22%),
+    radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.04), transparent 18%),
+    linear-gradient(135deg, #1b1d1f 0%, #16181a 50%, #111214 100%);
+  color: #e5e7eb;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.cork {
+  background-color: #e7d4b5;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.45) 1px, transparent 0),
+    radial-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 0),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.08) 18%, transparent 18%),
+    linear-gradient(-120deg, rgba(255, 255, 255, 0.08) 18%, transparent 18%);
+  background-size: 20px 20px, 18px 18px, 32px 32px, 32px 32px;
+  background-position: 0 0, 10px 10px, 0 0, 16px 16px;
+}
+
+.note-handwriting {
+  font-family: var(--note-font, "Manrope", "Segoe UI", sans-serif);
+}
+
+.note-editing {
+  font-family: var(--note-font, "Manrope", "Segoe UI", sans-serif);
+}

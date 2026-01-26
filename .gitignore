@@ -1,0 +1,26 @@
+# Node/Yarn/PNPM
+node_modules
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+
+# Build output
+client/dist
+
+# Env & local config
+.env
+*.env.local
+
+# SQLite data
+data/
+server/prisma/*.db
+server/prisma/migrations/dev.db
+
+# Prisma generated
+server/generated/
+
+# Editor/OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
