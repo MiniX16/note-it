@@ -5,6 +5,7 @@ const prisma = require("../prismaClient");
 
 const router = express.Router();
 const TOKEN_EXPIRATION = "7d";
+const normalizeEmail = (value = "") => String(value).trim().toLowerCase();
 
 const buildToken = (user) => {
   const secret = process.env.JWT_SECRET || "supersecretjwt";
@@ -14,7 +15,8 @@ const buildToken = (user) => {
 };
 
 router.post("/register", async (req, res) => {
-  const { email, password } = req.body;
+  const email = normalizeEmail(req.body.email);
+  const { password } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ message: "Email and password are required" });
@@ -41,7 +43,8 @@ router.post("/register", async (req, res) => {
 });
 
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+  const email = normalizeEmail(req.body.email);
+  const { password } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ message: "Email and password are required" });

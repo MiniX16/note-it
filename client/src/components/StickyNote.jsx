@@ -8,6 +8,21 @@ const colorStyles = {
   green: "bg-lime-200 border-lime-300",
 };
 
+const sizeOptions = [
+  { key: "compact", label: "Pequeño", width: 220, height: 160 },
+  { key: "standard", label: "Medio", width: 256, height: 180 },
+  { key: "roomy", label: "Grande", width: 320, height: 220 },
+];
+
+const fontOptions = [
+  { key: "small", label: "Letra pequeña", size: 14 },
+  { key: "medium", label: "Letra media", size: 16 },
+  { key: "large", label: "Letra grande", size: 18 },
+  { key: "xl", label: "Letra XL", size: 20 },
+];
+
+const defaultSizing = { width: 256, height: 180, fontSize: 16 };
+
 const clamp = (value, min = 0, max = 100) =>
   Math.min(max, Math.max(min, value));
 
@@ -35,6 +50,9 @@ const StickyNote = ({ note, boardSize, onUpdate, onDelete }) => {
   const [menu, setMenu] = useState({ open: false, x: 0, y: 0 });
   const [localPos, setLocalPos] = useState({ x: 0, y: 0 });
   const [z, setZ] = useState(1);
+  const noteWidth = note.width || defaultSizing.width;
+  const noteHeight = note.height || defaultSizing.height;
+  const noteFontSize = note.fontSize || defaultSizing.fontSize;
 
   useEffect(() => {
     setDraft(note.content || "");
@@ -105,14 +123,22 @@ const StickyNote = ({ note, boardSize, onUpdate, onDelete }) => {
       >
         <div
           ref={nodeRef}
-          className={`absolute w-64 cursor-move rounded-lg border p-3 shadow-[0_10px_22px_rgba(0,0,0,0.25)] hover:-rotate-1 hover:shadow-[0_14px_26px_rgba(0,0,0,0.32)] ${
+          className={`absolute cursor-move rounded-lg border p-3 shadow-[0_10px_22px_rgba(0,0,0,0.25)] hover:-rotate-1 hover:shadow-[0_14px_26px_rgba(0,0,0,0.32)] ${
             colorStyles[note.color] || colorStyles.yellow
           }`}
-          style={{ zIndex: z }}
+          style={{
+            zIndex: z,
+            width: `${noteWidth}px`,
+            minHeight: `${noteHeight}px`,
+          }}
           onContextMenu={handleContextMenu}
         >
           <div
-            className="mt-1 min-h-[140px] whitespace-pre-wrap text-base leading-relaxed note-handwriting text-slate-800"
+            className="mt-1 whitespace-pre-wrap leading-relaxed note-handwriting text-slate-800"
+            style={{
+              fontSize: noteFontSize,
+              minHeight: `${Math.max(noteHeight - 40, 100)}px`,
+            }}
             onDoubleClick={() => setEditing(true)}
           >
             {editing ? (
@@ -126,13 +152,14 @@ const StickyNote = ({ note, boardSize, onUpdate, onDelete }) => {
                     handleSaveContent();
                   }
                 }}
-                className="note-editing w-full resize-none rounded-lg border border-amber-300 bg-white/70 p-2 text-sm outline-none ring-2 ring-amber-200"
+                className="note-editing w-full resize-none rounded-lg border border-amber-300 bg-white/70 p-2 outline-none ring-2 ring-amber-200"
+                style={{ fontSize: noteFontSize }}
                 placeholder="Escribe tus ideas aquí..."
                 rows={6}
               />
             ) : (
               draft || (
-                <span className="text-sm text-slate-600">
+                <span className="text-slate-600" style={{ fontSize: noteFontSize - 1 }}>
                   Doble clic para editar
                 </span>
               )
@@ -149,9 +176,66 @@ const StickyNote = ({ note, boardSize, onUpdate, onDelete }) => {
 
       {menu.open && (
         <div
-          className="note-menu fixed z-50 w-40 rounded-xl border border-slate-200 bg-white p-2 shadow-2xl"
+          className="note-menu fixed z-50 w-52 rounded-xl border border-slate-200 bg-white p-2 shadow-2xl"
           style={{ top: menu.y, left: menu.x }}
         >
+          <p className="px-2 pb-1 text-xs font-semibold text-slate-500">
+            Tamaño de nota
+          </p>
+          <div className="grid grid-cols-2 gap-2 px-2 pb-2">
+            {sizeOptions.map((option) => {
+              const isActive =
+                Math.abs(noteWidth - option.width) < 2 &&
+                Math.abs(noteHeight - option.height) < 2;
+              return (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => {
+                    onUpdate(note.id, {
+                      width: option.width,
+                      height: option.height,
+                    });
+                    setMenu((prev) => ({ ...prev, open: false }));
+                  }}
+                  className={`rounded-lg border px-2 py-2 text-left text-xs font-semibold transition ${
+                    isActive
+                      ? "border-amber-400 bg-amber-50 text-amber-800"
+                      : "border-slate-200 text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  <span className="block text-sm">{option.label}</span>
+                  <span className="text-[11px] text-slate-500">
+                    {option.width}px · {option.height}px
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <p className="px-2 pb-1 text-xs font-semibold text-slate-500">
+            Tamaño de letra
+          </p>
+          <div className="flex flex-wrap gap-2 px-2 pb-2">
+            {fontOptions.map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                onClick={() => {
+                  onUpdate(note.id, { fontSize: option.size });
+                  setMenu((prev) => ({ ...prev, open: false }));
+                }}
+                className={`rounded-full px-3 py-1 text-xs font-bold ${
+                  Math.abs(noteFontSize - option.size) < 0.5
+                    ? "bg-amber-100 text-amber-800 ring-2 ring-amber-200"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
           <p className="px-2 pb-1 text-xs font-semibold text-slate-500">
             Color
           </p>

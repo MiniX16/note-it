@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AuthForm from "./components/AuthForm";
 import Board from "./components/Board";
 import {
@@ -35,6 +35,10 @@ function App() {
   const [background, setBackground] = useState(
     localStorage.getItem("background") || "cork"
   );
+  const [customBackground, setCustomBackground] = useState(
+    localStorage.getItem("customBackground") || ""
+  );
+  const backgroundInputRef = useRef(null);
 
   useEffect(() => {
     const value =
@@ -48,6 +52,43 @@ function App() {
   useEffect(() => {
     localStorage.setItem("background", background);
   }, [background]);
+
+  useEffect(() => {
+    if (customBackground) {
+      localStorage.setItem("customBackground", customBackground);
+    } else {
+      localStorage.removeItem("customBackground");
+    }
+  }, [customBackground]);
+
+  useEffect(() => {
+    if (background === "custom" && !customBackground) {
+      setBackground("cork");
+    }
+  }, [background, customBackground]);
+
+  const handleCustomBackgroundUpload = (event) => {
+    const file = event.target.files?.[0];
+    if (event.target) {
+      event.target.value = "";
+    }
+    if (!file) return;
+
+    if (file.size > 4 * 1024 * 1024) {
+      setNotice("La imagen no puede superar los 4MB");
+      return;
+    }
+
+    setNotice("");
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setCustomBackground(reader.result);
+        setBackground("custom");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const avatarStyle = useMemo(() => {
     if (!user?.email) {
@@ -130,6 +171,9 @@ function App() {
       color: randomColor(),
       posX: Math.min(85, Math.random() * 70 + 10),
       posY: Math.min(85, Math.random() * 60 + 10),
+      width: 256,
+      height: 180,
+      fontSize: 16,
     };
 
     try {
@@ -250,7 +294,7 @@ function App() {
                 <p className="text-sm font-semibold text-slate-800">
                   Fondo del mural
                 </p>
-                <div className="mt-3 grid grid-cols-2 gap-3">
+                <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3">
                   <button
                     onClick={() => setBackground("cork")}
                     className={`rounded-2xl border p-2 text-left shadow-sm transition hover:-translate-y-0.5 ${
@@ -285,6 +329,55 @@ function App() {
                       Fotografía
                     </p>
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (customBackground) {
+                        setBackground("custom");
+                      }
+                      backgroundInputRef.current?.click();
+                    }}
+                    className={`rounded-2xl border p-2 text-left shadow-sm transition hover:-translate-y-0.5 ${
+                      background === "custom"
+                        ? "border-amber-400 ring-2 ring-amber-200"
+                        : "border-slate-200"
+                    }`}
+                  >
+                    <div className="relative h-20 w-full rounded-xl border border-white shadow-inner overflow-hidden">
+                      {customBackground ? (
+                        <div
+                          className="h-full w-full"
+                          style={{
+                            backgroundImage: `url(${customBackground})`,
+                            backgroundSize: "cover",
+                            backgroundPosition: "center",
+                          }}
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center rounded-xl border-2 border-dashed border-amber-300 bg-amber-50 text-3xl font-extrabold text-amber-600">
+                          +
+                        </div>
+                      )}
+                      <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-white/80 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700 shadow">
+                        <span className="text-base leading-none">+</span>
+                        Subir
+                      </div>
+                    </div>
+                    <p className="mt-2 text-sm font-semibold text-slate-800">
+                      Fondo personalizado
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Usa cualquier imagen desde tu equipo.
+                    </p>
+                  </button>
+                  <input
+                    ref={backgroundInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleCustomBackgroundUpload}
+                  />
                 </div>
               </div>
 
@@ -315,6 +408,7 @@ function App() {
         onUpdateNote={handleUpdateNote}
         onDeleteNote={handleDeleteNote}
         background={background}
+        customBackground={customBackground}
       />
 
       <button

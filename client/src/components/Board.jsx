@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import StickyNote from "./StickyNote";
 
-const Board = ({ notes, onUpdateNote, onDeleteNote, background = "cork" }) => {
+const Board = ({
+  notes,
+  onUpdateNote,
+  onDeleteNote,
+  background = "cork",
+  customBackground = "",
+}) => {
   const boardRef = useRef(null);
   const [boardSize, setBoardSize] = useState({ width: 1200, height: 900 });
 
@@ -26,22 +32,31 @@ const Board = ({ notes, onUpdateNote, onDeleteNote, background = "cork" }) => {
     };
   }, []);
 
-  const boardStyle =
-    background === "image"
-      ? {
-          backgroundImage: "url(/backgrounds/board-aesthetic.jpg)",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-        }
-      : {};
+  let boardStyle = {};
+  if (background === "image") {
+    boardStyle = {
+      backgroundImage: "url(/backgrounds/board-aesthetic.jpg)",
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+    };
+  } else if (background === "custom" && customBackground) {
+    boardStyle = {
+      backgroundImage: `url(${customBackground})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+    };
+  }
 
   return (
     <div className="relative h-screen w-full overflow-hidden">
       <div
         ref={boardRef}
         className={`relative h-full w-full overflow-auto p-6 ${
-          background === "image" ? "" : "cork"
+          background === "cork" || (background === "custom" && !customBackground)
+            ? "cork"
+            : ""
         }`}
         style={boardStyle}
       >
