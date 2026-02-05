@@ -1,107 +1,112 @@
-# Note It
+# Note-It
+_A corkboard-like sticky notes wall powered by React + Vite on the frontend and an Express + Prisma API on the backend._
 
-Sticky notes app built with React + Vite on the client and Node.js + Express + Prisma on the backend. It stores data in SQLite and can run both in local development mode and inside Docker containers.
+[![React 19.2.0](https://img.shields.io/badge/React-19.2.0-0A7FF6?style=for-the-badge&logo=react&logoColor=ffffff)](#)
+[![Express 4.19.2](https://img.shields.io/badge/Express-4.19.2-1C1C1C?style=for-the-badge&logo=express&logoColor=ffffff)](#)
+[![Prisma 7.3.0](https://img.shields.io/badge/Prisma-7.3.0-2D3748?style=for-the-badge&logo=prisma&logoColor=ffffff)](#)
 
-## Main stack
-- **Client:** React, Vite, Tailwind CSS.
-- **Server:** Node.js, Express, Prisma, SQLite.
-- **Infra:** Docker/Docker Compose with a persistent volume for the database.
+> Organize ideas, tasks, and reminders on an infinite board that feels like pinning Post-it notes to a real wall.
 
-## Local development
-You can work with plain npm commands:
+## Quick Peek
+<p align="center">
+  <img src="./client/public/assets/overview.png" alt="Note-It board overview" width="520" />
+</p>
 
-```bash
-# Client
-cd client
-npm install
-npm run dev
+## What Is Note-It?
+Note-It emulates the experience of placing physical sticky notes on a customizable board. Each user maintains their own session (JWT-based authentication), every note is persisted through Prisma/SQLite, and the layout stays flexible so you can tailor colors, backgrounds, and note positions to your personal workflow or collaborative brainstorming sessions.
 
-# Server
-cd server
-npm install
-npm run dev
-```
+## Quick Start (Docker Compose)
+> Requirements: Docker + Docker Compose plugin.
 
-There is also a Docker workflow that mirrors the production stack but rebuilds images from your local code:
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/MiniX16/note-it.git
+   cd note-it
+   ```
+2. **Prepare environment files** (re-use the provided templates)
+   ```bash
+   cp client/.env.example client/.env
+   cp server/.env.example server/.env
+   ```
+   Update `client/.env`, `server/.env`, and the root `.env` so `VITE_API_URL`, `CLIENT_URLS`, `JWT_SECRET`, and `DATABASE_URL` point to the right hosts.
+3. **Launch the full stack with both compose files**
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+   ```
+   - Frontend served at `http://localhost:4173`.
+   - API available at `http://localhost:4000` (`curl http://localhost:4000/api/health` should return `{"status":"ok"}`).
+4. **Shut down and clean resources when finished**
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.dev.yml down
+   ```
+   Add `-v` if you also want to remove the local SQLite volume.
 
-```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
-```
+<details>
+<summary>Environment variable cheat sheet</summary>
 
-This builds the frontend with the `CLIENT_BUILD_API_URL` (defaults to `http://localhost:4000/api`), spins up the API on `http://localhost:4000`, and serves the client on `http://localhost:4173`.
-
-## Environment files and variables
-Use the included templates to understand which values must be set before deploying:
-
-- `client/.env.example` and `server/.env.example`: variables consumed when running each app via npm.
-- `.env`: template with global Docker Compose configuration (images, ports, volume, URLs, etc.). It is safe to version because it contains no real secrets.
-- `.env.production`: optional template with the values the server needs specifically. You can reuse it with `docker compose --env-file .env.production up` on any host.
-
-If someone wants to rely on **only the `docker-compose.yml`** (e.g., in Portainer), they can paste the YAML and fill in the variables in the stack’s “Env vars” section. The compose file uses `${VAR:-value}` everywhere, so the same values can also come from `--env-file` or exported shell variables.
-
-### Global variables (docker-compose)
-| Variable | Description | Required? | Default |
+| Location | Key | Suggested value | Purpose |
 | --- | --- | --- | --- |
-| `COMPOSE_PROJECT_NAME` | Logical Docker/Portainer stack name. | No | `note-it` |
-| `SERVER_IMAGE` | Published API image (`user/note-it-server:tag`). | Yes | `note-it-server:latest` (placeholder) |
-| `CLIENT_IMAGE` | Published frontend image (`user/note-it-client:tag`). | Yes | `note-it-client:latest` (placeholder) |
-| `SERVER_PORT` | Host port that exposes the API. | No | `4000` |
-| `CLIENT_PORT` | Host port for the static client. | No | `4173` |
-| `SERVER_DATA_VOLUME` | Docker volume name that persists `/data/app.db`. | No | `noteit-data` |
-| `DATABASE_URL` | Path to the SQLite file inside the container. | No | `file:/data/app.db` |
-| `CLIENT_URLS` | Comma-separated list of origins allowed by CORS. Point it to the real public frontend URLs. | Yes | `http://localhost:4173` |
-| `JWT_SECRET` | Secret used to sign JWTs. Change it in production. | Yes | `change-this-secret` (placeholder) |
+| `client/.env` | `VITE_API_URL` | `http://localhost:4000/api` | API base URL for Vite builds. |
+| `server/.env` | `DATABASE_URL` | `file:./prisma/dev.db` | Local SQLite path for Prisma. |
+| `server/.env` | `JWT_SECRET` | `change-me` | Secret used to sign JWTs. |
+| `server/.env` | `CLIENT_URLS` | `http://localhost:5173,http://localhost:4173` | Allowed web origins for CORS. |
+| `.env` (Compose) | `DATABASE_URL` | `file:/data/app.db` | SQLite file path inside the container. |
 
-### Build/development-specific variables
-| Variable | Where it is used | Required? | Default |
-| --- | --- | --- | --- |
-| `CLIENT_BUILD_API_URL` | Vite build arg so the frontend hits the right API when built through `docker-compose.dev.yml`. | No | `http://localhost:4000/api` |
+</details>
 
-> Feel free to copy `.env` and `.env.production` as-is into Portainer or your deployment host and edit the values there before launching.
+## One-File Deploy (Portainer-ready)
+Use a single compose file to pull both published images, map environment variables, and mount the persistent SQLite volume. Paste the following template into Portainer (or save it as `docker-compose.yml`) and adjust the placeholders to match your registry and domain:
 
-## Deploying using only the YAML
-1. **Grab the `docker-compose.yml`** (from this repo or your docs).
-2. **Provide the variables** from the table above:
-   - In Portainer, open the “Environment variables” section and add each `NAME=value` pair.
-   - With the CLI, create an `.env` file or export them directly before running `docker compose up -d`.
-3. **Start the stack.** Docker automatically creates the named volume (`SERVER_DATA_VOLUME`) and runs the API + client with the images you specify.
-4. **Verify** that the frontend responds on the configured port and that `curl http://YOUR_HOST:4000/api/health` returns `ok`.
+```yaml
+services:
+  server:
+    image: ghcr.io/minix16/note-it-server:latest
+    restart: unless-stopped
+    environment:
+      PORT: 4000
+      DATABASE_URL: file:/data/app.db
+      CLIENT_URLS: https://app.example.com
+      JWT_SECRET: ${JWT_SECRET:-please-change-me}
+    ports:
+      - "4000:4000"
+    volumes:
+      - noteit-data:/data
 
-No clone or extra files are required: the compose file already carries the defaults and only needs you to fill the required variables.
+  client:
+    image: ghcr.io/minix16/note-it-client:latest
+    restart: unless-stopped
+    ports:
+      - "4173:80"
+    depends_on:
+      server:
+        condition: service_started
 
-## Image build and publish
-1. Update `SERVER_IMAGE`, `CLIENT_IMAGE`, and `CLIENT_BUILD_API_URL` (if the frontend must call another API URL) in your envs.
-2. Authenticate with your registry (`docker login`).
-3. Build both images using the dev overlay so they pick your latest source code:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml build
+volumes:
+  noteit-data:
+    name: noteit-data
 ```
 
-4. (Optional) Test the resulting stack locally:
+- Keep `DATABASE_URL` pointing to `file:/data/app.db` so the Prisma client writes inside the mounted volume.
+- Set `CLIENT_URLS` to the real frontend origins (comma separated) and pass a strong `JWT_SECRET`. In Portainer you can declare these as stack environment variables and reuse `${JWT_SECRET}` or hard-code them.
+- Build the frontend image with the proper `CLIENT_BUILD_API_URL` (or equivalent) so that the static bundle already points to your API; the running container no longer needs extra env vars.
+- Map the host ports (`4000` API, `4173` UI) to the values that fit your infrastructure; HTTPS fronting can be added later via a reverse proxy.
 
+## Folder Structure
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+note-it/
+├─ client/                # React + Vite + Tailwind front-end
+│  ├─ public/             # Backgrounds, sounds, favicon
+│  └─ src/
+│     ├─ components/      # Sticky notes, board, dialogs
+│     ├─ hooks/           # Drag & session helpers
+│     └─ styles/          # Tailwind config and global CSS
+├─ server/                # Express API + Prisma ORM
+│  ├─ src/
+│  │  ├─ routes/          # /auth, /notes, /health
+│  │  ├─ middleware/      # Auth guards, error handlers
+│  │  └─ prismaClient.js  # Prisma singleton
+│  └─ prisma/             # Schema and migrations for SQLite
+├─ docker-compose.yml     # Production-style stack definition
+├─ docker-compose.dev.yml # Dev overlay to build from local code
+└─ data/app.db            # SQLite database persisted via volume
 ```
-
-5. Push the images to your registry:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml push
-```
-
-The frontend build uses the `VITE_API_URL` argument. If your API won’t live at `http://localhost:4000/api`, export `CLIENT_BUILD_API_URL="https://your-domain/api"` before running `build`.
-
-## Production / Portainer deployment
-1. Publish your images (see previous section) or point `SERVER_IMAGE` / `CLIENT_IMAGE` to tags that are reachable from the target host.
-2. Define the variables described earlier (reuse the `.env` templates or set them manually in Portainer/CLI).
-3. Import `docker-compose.yml` into Portainer (or run `docker compose up -d` on the target machine). If you use Portainer, add the `VARIABLE=value` pairs before launching the stack.
-4. The named volume `noteit-data` (controlled by `SERVER_DATA_VOLUME`) is created automatically and persists `app.db`. Change the variable if you prefer another volume or mount a host path.
-5. Verify the deployment at `http://YOUR_HOST:4173` and check the API health via `curl http://YOUR_HOST:4000/api/health`.
-
-The only mandatory artifact is the `docker-compose.yml`. Everything else (env templates, scripts) simply helps fill in those variables faster.
-
-## Handy scripts
-- `docker compose up -d` → production-style deployment using published images.
-- `docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v` → clean up local dev containers/volumes.
-- `curl http://localhost:4000/api/health` → quick API health check.
