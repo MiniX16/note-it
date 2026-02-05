@@ -10,6 +10,8 @@ client/dist
 # Env & local config
 .env
 *.env.local
+!/.env
+!/.env.production
 
 # SQLite data
 data/

@@ -2,23 +2,27 @@ version: "3.9"
 
 services:
   server:
-    build: ./server
+    image: ${SERVER_IMAGE:-note-it-server:latest}
+    restart: unless-stopped
     environment:
-      - DATABASE_URL=file:/data/app.db
-      - PORT=4000
-      - CLIENT_URLS=http://localhost:4173,http://localhost:5173,http://127.0.0.1:4173,http://127.0.0.1:5173
-      - JWT_SECRET=change-me
+      PORT: 4000
+      DATABASE_URL: ${DATABASE_URL:-file:/data/app.db}
+      CLIENT_URLS: ${CLIENT_URLS:-http://localhost:4173}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET before deploying}
     ports:
-      - "4000:4000"
+      - "${SERVER_PORT:-4000}:4000"
     volumes:
-      - ./data:/data
+      - noteit-data:/data
 
   client:
-    build:
-      context: ./client
-      args:
-        - VITE_API_URL=http://localhost:4000/api
+    image: ${CLIENT_IMAGE:-note-it-client:latest}
+    restart: unless-stopped
     ports:
-      - "4173:80"
+      - "${CLIENT_PORT:-4173}:80"
     depends_on:
-      - server
+      server:
+        condition: service_started
+
+volumes:
+  noteit-data:
+    name: ${SERVER_DATA_VOLUME:-noteit-data}
