@@ -11,7 +11,6 @@ RUN npm install
 COPY prisma ./prisma
 COPY prisma.config.ts ./
 COPY src ./src
-COPY .env.example ./
 
 RUN npx prisma generate
 

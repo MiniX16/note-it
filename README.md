@@ -23,19 +23,13 @@ Note-It emulates the experience of placing physical sticky notes on a customizab
    git clone https://github.com/MiniX16/note-it.git
    cd note-it
    ```
-2. **Prepare environment files** (re-use the provided templates)
-   ```bash
-   cp client/.env.example client/.env
-   cp server/.env.example server/.env
-   ```
-   Update `client/.env`, `server/.env`, and the root `.env` so `VITE_API_URL`, `CLIENT_URLS`, `JWT_SECRET`, and `DATABASE_URL` point to the right hosts.
-3. **Launch the full stack with both compose files**
+2. **Launch the full stack with both compose files**
    ```bash
    docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
    ```
    - Frontend served at `http://localhost:4173`.
    - API available at `http://localhost:4000` (`curl http://localhost:4000/api/health` should return `{"status":"ok"}`).
-4. **Shut down and clean resources when finished**
+3. **Shut down and clean resources when finished**
    ```bash
    docker compose -f docker-compose.yml -f docker-compose.dev.yml down
    ```

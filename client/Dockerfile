@@ -4,7 +4,6 @@ WORKDIR /app
 
 COPY package*.json ./
 COPY tailwind.config.js postcss.config.js vite.config.js ./
-COPY .env.example ./
 
 RUN npm install
 
