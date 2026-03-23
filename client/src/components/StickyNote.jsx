@@ -1,11 +1,39 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Draggable from "react-draggable";
 
-const colorStyles = {
-  yellow: "bg-amber-200 border-amber-300",
-  pink: "bg-pink-200 border-pink-300",
-  blue: "bg-sky-200 border-sky-300",
-  green: "bg-lime-200 border-lime-300",
+const colorThemes = {
+  yellow: {
+    "--note-paper": "#f6de73",
+    "--note-paper-soft": "#fcf2ad",
+    "--note-paper-deep": "#d8a93f",
+    "--note-border": "rgba(204, 153, 42, 0.48)",
+    "--note-ink": "#5f4b18",
+    "--note-shadow": "rgba(112, 80, 17, 0.24)",
+  },
+  pink: {
+    "--note-paper": "#f4bfd1",
+    "--note-paper-soft": "#fde2eb",
+    "--note-paper-deep": "#de8ea8",
+    "--note-border": "rgba(190, 96, 134, 0.34)",
+    "--note-ink": "#5e3143",
+    "--note-shadow": "rgba(122, 59, 82, 0.22)",
+  },
+  blue: {
+    "--note-paper": "#bfe1f6",
+    "--note-paper-soft": "#e4f3fd",
+    "--note-paper-deep": "#78b7e1",
+    "--note-border": "rgba(74, 133, 173, 0.32)",
+    "--note-ink": "#29485d",
+    "--note-shadow": "rgba(48, 89, 118, 0.22)",
+  },
+  green: {
+    "--note-paper": "#d5ed9a",
+    "--note-paper-soft": "#eef9c8",
+    "--note-paper-deep": "#94bb4e",
+    "--note-border": "rgba(113, 146, 44, 0.34)",
+    "--note-ink": "#405223",
+    "--note-shadow": "rgba(76, 102, 24, 0.22)",
+  },
 };
 
 const sizeOptions = [
@@ -25,6 +53,45 @@ const defaultSizing = { width: 256, height: 180, fontSize: 16 };
 
 const clamp = (value, min = 0, max = 100) =>
   Math.min(max, Math.max(min, value));
+
+const noteVariants = [
+  { key: "pin", paddingTop: 22 },
+  { key: "flat", paddingTop: 10 },
+  { key: "tape-top", paddingTop: 22 },
+  { key: "tape-angle", paddingTop: 18 },
+];
+
+const rotationSteps = [-3.2, -2.4, -1.8, -1.1, -0.6, 0.7, 1.3, 1.9, 2.6, 3.1];
+
+const hashString = (value) => {
+  const text = String(value ?? "");
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash << 5) - hash + text.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+};
+
+const getNotePresentation = (noteId, createdAt) => {
+  const seed = hashString(`${noteId}-${createdAt ?? ""}`);
+  const variant = noteVariants[seed % noteVariants.length];
+  const rotation = rotationSteps[(seed >> 3) % rotationSteps.length];
+  return { seed, variant, rotation };
+};
+
+const renderDecorations = (variantKey) => {
+  switch (variantKey) {
+    case "pin":
+      return <span aria-hidden="true" className="note-pin note-pin--left" />;
+    case "tape-top":
+      return <span aria-hidden="true" className="note-tape note-tape--top" />;
+    case "tape-angle":
+      return <span aria-hidden="true" className="note-tape note-tape--angled" />;
+    default:
+      return null;
+  }
+};
 
 let pickAudio;
 const playPickSound = () => {
@@ -53,6 +120,15 @@ const StickyNote = ({ note, boardSize, onUpdate, onDelete }) => {
   const noteWidth = note.width || defaultSizing.width;
   const noteHeight = note.height || defaultSizing.height;
   const noteFontSize = note.fontSize || defaultSizing.fontSize;
+  const presentation = useMemo(
+    () => getNotePresentation(note.id, note.createdAt),
+    [note.id, note.createdAt]
+  );
+  const noteTheme = colorThemes[note.color] || colorThemes.yellow;
+  const contentMinHeight = Math.max(
+    noteHeight - presentation.variant.paddingTop - 48,
+    96
+  );
 
   useEffect(() => {
     setDraft(note.content || "");
@@ -68,7 +144,7 @@ const StickyNote = ({ note, boardSize, onUpdate, onDelete }) => {
 
   useEffect(() => {
     setLocalPos(position);
-  }, [position.x, position.y]);
+  }, [position]);
 
   useEffect(() => {
     const closeMenu = () => setMenu((prev) => ({ ...prev, open: false }));
@@ -123,53 +199,72 @@ const StickyNote = ({ note, boardSize, onUpdate, onDelete }) => {
       >
         <div
           ref={nodeRef}
-          className={`absolute cursor-move rounded-lg border p-3 shadow-[0_10px_22px_rgba(0,0,0,0.25)] hover:-rotate-1 hover:shadow-[0_14px_26px_rgba(0,0,0,0.32)] ${
-            colorStyles[note.color] || colorStyles.yellow
-          }`}
+          className="absolute cursor-move"
           style={{
             zIndex: z,
             width: `${noteWidth}px`,
-            minHeight: `${noteHeight}px`,
           }}
-          onContextMenu={handleContextMenu}
         >
           <div
-            className="mt-1 whitespace-pre-wrap leading-relaxed note-handwriting text-slate-800"
+            className={`note-paper note-paper--${presentation.variant.key}`}
             style={{
-              fontSize: noteFontSize,
-              minHeight: `${Math.max(noteHeight - 40, 100)}px`,
+              ...noteTheme,
+              minHeight: `${noteHeight}px`,
+              transform: `rotate(${presentation.rotation}deg)`,
             }}
-            onDoubleClick={() => setEditing(true)}
+            onContextMenu={handleContextMenu}
           >
-            {editing ? (
-              <textarea
-                autoFocus
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onBlur={handleSaveContent}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                    handleSaveContent();
-                  }
+            {renderDecorations(presentation.variant.key)}
+            <div
+              className="relative z-[1] px-4 pb-3"
+              style={{ paddingTop: `${presentation.variant.paddingTop}px` }}
+            >
+              <div
+                className="mt-1 whitespace-pre-wrap leading-relaxed note-handwriting"
+                style={{
+                  color: "var(--note-ink)",
+                  fontSize: noteFontSize,
+                  minHeight: `${contentMinHeight}px`,
                 }}
-                className="note-editing w-full resize-none rounded-lg border border-amber-300 bg-white/70 p-2 outline-none ring-2 ring-amber-200"
-                style={{ fontSize: noteFontSize }}
-                placeholder="Escribe tus ideas aquí..."
-                rows={6}
-              />
-            ) : (
-              draft || (
-                <span className="text-slate-600" style={{ fontSize: noteFontSize - 1 }}>
-                  Doble clic para editar
-                </span>
-              )
-            )}
-          </div>
+                onDoubleClick={() => setEditing(true)}
+              >
+                {editing ? (
+                  <textarea
+                    autoFocus
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onBlur={handleSaveContent}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                        handleSaveContent();
+                      }
+                    }}
+                    className="note-editing w-full resize-none rounded-2xl border border-white/70 bg-white/45 p-2 outline-none ring-2 ring-white/40"
+                    style={{ color: "var(--note-ink)", fontSize: noteFontSize }}
+                    placeholder="Escribe tus ideas aquí..."
+                    rows={6}
+                  />
+                ) : (
+                  draft || (
+                    <span
+                      className="opacity-70"
+                      style={{ color: "var(--note-ink)", fontSize: noteFontSize - 1 }}
+                    >
+                      Doble clic para editar
+                    </span>
+                  )
+                )}
+              </div>
 
-          <div className="mt-3 flex items-center justify-end text-[11px] text-slate-600">
-            <span>
-              {new Date(note.updatedAt || note.createdAt).toLocaleDateString()}
-            </span>
+              <div
+                className="mt-3 flex items-center justify-end text-[11px] opacity-75"
+                style={{ color: "var(--note-ink)" }}
+              >
+                <span>
+                  {new Date(note.updatedAt || note.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </Draggable>
@@ -240,7 +335,7 @@ const StickyNote = ({ note, boardSize, onUpdate, onDelete }) => {
             Color
           </p>
           <div className="flex gap-2 px-2 pb-2">
-            {Object.keys(colorStyles).map((key) => (
+            {Object.keys(colorThemes).map((key) => (
               <button
                 key={key}
                 onClick={() => {
@@ -248,8 +343,9 @@ const StickyNote = ({ note, boardSize, onUpdate, onDelete }) => {
                   setMenu((prev) => ({ ...prev, open: false }));
                 }}
                 className={`h-6 w-6 rounded-full border border-white shadow ${
-                  colorStyles[key].split(" ")[0]
-                } ${note.color === key ? "ring-2 ring-amber-600" : ""}`}
+                  note.color === key ? "ring-2 ring-amber-600" : ""
+                }`}
+                style={{ backgroundColor: colorThemes[key]["--note-paper"] }}
                 aria-label={`Cambiar a color ${key}`}
                 type="button"
               />
