@@ -29,6 +29,7 @@ Note-It emulates the experience of placing physical sticky notes on a customizab
    ```
    - Frontend served at `http://localhost:4173`.
    - API available at `http://localhost:4000` (`curl http://localhost:4000/api/health` should return `{"status":"ok"}`).
+   - `.env` is optional for local development here because the compose files already provide usable defaults. Copy `.env.example` to `.env` only if you want to override ports, image tags, project name, or the client build API URL.
 3. **Shut down and clean resources when finished**
    ```bash
    docker compose -f docker-compose.yml -f docker-compose.dev.yml down
@@ -40,11 +41,16 @@ Note-It emulates the experience of placing physical sticky notes on a customizab
 
 | Location | Key | Suggested value | Purpose |
 | --- | --- | --- | --- |
-| `client/.env` | `VITE_API_URL` | `http://localhost:4000/api` | API base URL for Vite builds. |
-| `server/.env` | `DATABASE_URL` | `file:./prisma/dev.db` | Local SQLite path for Prisma. |
-| `server/.env` | `JWT_SECRET` | `change-me` | Secret used to sign JWTs. |
-| `server/.env` | `CLIENT_URLS` | `http://localhost:5173,http://localhost:4173` | Allowed web origins for CORS. |
-| `.env` (Compose) | `DATABASE_URL` | `file:/data/app.db` | SQLite file path inside the container. |
+| Optional `.env.example` -> `.env` | `SERVER_IMAGE` | `minix16/note-it-server:latest` | Override the default server image used by Compose. |
+| Optional `.env.example` -> `.env` | `CLIENT_IMAGE` | `minix16/note-it-client:latest` | Override the default client image used by Compose. |
+| Optional `.env.example` -> `.env` | `CLIENT_BUILD_API_URL` | `http://localhost:4000/api` | API base URL baked into local client builds. |
+| Optional `.env.example` -> `.env` | `DATABASE_URL` | `file:/data/app.db` | Override the SQLite file path inside the container. |
+| Optional `.env.example` -> `.env` | `CLIENT_URLS` | `http://localhost:4173` | Override the allowed frontend origins for the API. |
+| Optional `.env.example` -> `.env` | `JWT_SECRET` | `change-this-secret` | Override the local JWT signing secret if you do not want the compose default. |
+| `.env.production.example` -> `.env.production` | `SERVER_IMAGE` | `minix16/note-it-server:1.0.0` | Pinned server image for release deployments. |
+| `.env.production.example` -> `.env.production` | `CLIENT_IMAGE` | `minix16/note-it-client:1.0.0` | Pinned client image for release deployments. |
+| `.env.production.example` -> `.env.production` | `CLIENT_URLS` | `https://app.example.com` | Production origin list for CORS. |
+| `.env.production.example` -> `.env.production` | `JWT_SECRET` | `replace-with-a-strong-secret` | Production JWT signing secret. |
 
 </details>
 
@@ -54,7 +60,7 @@ Use a single compose file to pull both published images, map environment variabl
 ```yaml
 services:
   server:
-    image: ghcr.io/minix16/note-it-server:latest
+    image: docker.io/minix16/note-it-server:latest
     restart: unless-stopped
     environment:
       PORT: 4000
@@ -67,7 +73,7 @@ services:
       - noteit-data:/data
 
   client:
-    image: ghcr.io/minix16/note-it-client:latest
+    image: docker.io/minix16/note-it-client:latest
     restart: unless-stopped
     ports:
       - "4173:80"
@@ -88,19 +94,29 @@ volumes:
 ## Folder Structure
 ```bash
 note-it/
-├─ client/                # React + Vite + Tailwind front-end
-│  ├─ public/             # Backgrounds, sounds, favicon
+├─ .github/
+│  └─ workflows/
+│     └─ docker-publish.yml # Builds and publishes Docker images on release
+├─ client/                 # React + Vite + Tailwind front-end
+│  ├─ public/              # Backgrounds, sounds, screenshots
 │  └─ src/
-│     ├─ components/      # Sticky notes, board, dialogs
-│     ├─ hooks/           # Drag & session helpers
-│     └─ styles/          # Tailwind config and global CSS
-├─ server/                # Express API + Prisma ORM
+│     ├─ components/       # Auth form, board, sticky notes
+│     ├─ services/         # API client helpers
+│     ├─ App.jsx           # App shell and session state
+│     ├─ index.css         # Global styles
+│     └─ main.jsx          # React entry point
+├─ server/                 # Express API + Prisma ORM
+│  ├─ prisma/              # Schema and SQLite migrations
 │  ├─ src/
-│  │  ├─ routes/          # /auth, /notes, /health
-│  │  ├─ middleware/      # Auth guards, error handlers
-│  │  └─ prismaClient.js  # Prisma singleton
-│  └─ prisma/             # Schema and migrations for SQLite
-├─ docker-compose.yml     # Production-style stack definition
-├─ docker-compose.dev.yml # Dev overlay to build from local code
-└─ data/app.db            # SQLite database persisted via volume
+│  │  ├─ middleware/       # JWT auth guard
+│  │  ├─ routes/           # /auth, /notes
+│  │  ├─ index.js          # Express bootstrap and health route
+│  │  └─ prismaClient.js   # Prisma singleton
+│  └─ Dockerfile
+├─ .env.example            # Local Compose template
+├─ .env.production.example # Production Compose template
+├─ docker-compose.yml      # Production-style stack definition
+├─ docker-compose.dev.yml  # Dev overlay to build from local code
+├─ LICENSE
+└─ README.md
 ```

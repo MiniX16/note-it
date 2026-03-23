@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   server:
     image: ${SERVER_IMAGE:-note-it-server:latest}
