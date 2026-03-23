@@ -5,14 +5,12 @@ WORKDIR /app
 RUN apk add --no-cache python3 make g++ sqlite-dev curl
 
 COPY package*.json ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./
 
 RUN npm install
 
-COPY prisma ./prisma
-COPY prisma.config.ts ./
 COPY src ./src
-
-RUN npx prisma generate
 
 ENV NODE_ENV=production
 ENV PORT=4000
